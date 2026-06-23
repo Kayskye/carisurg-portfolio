@@ -1,0 +1,47 @@
+flowchart TD
+
+A[Patient Arrival] --> B[Registration]
+
+B --> C[Triage Assessment<br/>Vitals + Chief Complaint]
+
+C --> AI1[[AI Plug-in 1<br/>ML Triage Support]]
+
+AI1 -->|Suggested ESI + Risk Score| D{Nurse Final ESI Decision}
+
+D -->|ESI 1-3| E[Resus / Acute Bed]
+
+D -->|ESI 4-5| F[Fast Track / Waiting Area]
+
+F --> AI2[[AI Plug-in 2<br/>Deterioration Monitor]]
+
+AI2 --> G{Condition Changed?}
+
+G -->|Yes| C
+
+G -->|No| H[Continue Waiting]
+
+E --> I[Physician Assessment]
+
+H --> I
+
+I --> AI3[[AI Plug-in 3<br/>Documentation Check]]
+
+AI3 --> J[Investigations]
+
+J --> K{Disposition Decision}
+
+K -->|Admit| L[Ward Transfer]
+
+K -->|Discharge| M[Discharge]
+
+K -->|Transfer| N[External Transfer]
+
+L --> AI4[[AI Plug-in 4<br/>Flow Prediction]]
+
+M --> AI5[[AI Plug-in 5<br/>Bias Audit Reporting]]
+
+N --> AI5
+
+AI4 --> O[Exit]
+
+AI5 --> O
