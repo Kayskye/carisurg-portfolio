@@ -4,7 +4,7 @@
 
 ## (a) One-Sentence Verdict
 
-The Yale Emergency Department triage dataset is suitable for developing a machine learning-based admission prediction model because it contains clinically rich demographic, triage, and chief complaint data across [INSERT: n_rows] patient encounters — however, moderate missingness in vital sign variables, a substantial outlier burden in laboratory values, and its origin from a single North American health system require active data quality measures and a Phase 2 local validation study before findings can be applied at Mercer General ED.
+The Yale Emergency Department triage dataset is suitable for developing a machine learning-based admission prediction model because it contains clinically rich demographic, triage, and chief complaint data across 55,121 patient encounters — however, moderate missingness in vital sign variables, a substantial outlier burden in laboratory values, and its origin from a single North American health system require active data quality measures and a Phase 2 local validation study before findings can be applied at Mercer General ED.
 
 ---
 
@@ -12,16 +12,16 @@ The Yale Emergency Department triage dataset is suitable for developing a machin
 
 **What the dataset contains:**
 
-- **[INSERT: n_rows]** emergency department encounters collected across multiple sites within the Yale New Haven Health System, United States
-- **[INSERT: n_cols]** total columns organised into five clinical categories:
+- **560,000** emergency department encounters collected across multiple sites within the Yale New Haven Health System, United States
+- **230** total columns organised into five clinical categories:
   - *Triage acuity* — Emergency Severity Index (ESI 1–5), the same instrument used at Mercer General ED
   - *Vital signs* — heart rate, systolic/diastolic BP, respiratory rate, SpO2, temperature, blood glucose
   - *Demographics* — age, sex, race, ethnicity, language, marital status, employment, insurance
   - *Arrival data* — arrival mode, month, day, hour band, previous disposition
-  - *Chief complaints* — **[INSERT: n_cc]** binary indicator columns, one per presenting complaint
+  - *Chief complaints* — **200** binary indicator columns, one per presenting complaint
 - **Primary outcome variable:** `disposition` — the patient's final ED outcome (admitted, discharged, transferred, left without being seen)
-- **ESI distribution:** [INSERT from Cell 27 summary — e.g. ESI 2: 38%, ESI 3: 45%]
-- **Disposition split:** [INSERT from Cell 27 summary — e.g. Discharged: 62%, Admitted: 28%]
+- **ESI distribution:** ESI 1: 0.1%, ESI 2: 32.5%, ESI 3: 49.0%, ESI 4: 16.1%, ESI 5: 2.2%
+- **Disposition split:** Discharged: 62.7%, Admitted: 37.3%
 
 **Why this is appropriate for admission prediction:**  
 The dataset captures the exact triage variables collected on the Mercer General ED paper intake form — ESI level, vital signs, and chief complaint — making it structurally compatible with the proposed ML triage tool without requiring additional data collection at the point of care.
@@ -34,7 +34,7 @@ The dataset captures the exact triage variables collected on the Mercer General 
 
 ### Concern 1 — Missing Data in Clinical Variables
 
-**Observation:** [INSERT: n_missing_cols] columns contain missing values. The most affected clinical variables are blood glucose (`triage_glucose`) and oxygen delivery device (`triage_vital_o2_device`), both missing in a substantial proportion of encounters (see Figure 1b from profiling notebook).
+**Observation:** 0 columns contain missing values. The most affected clinical variables are blood glucose (`triage_glucose`) and oxygen delivery device (`triage_vital_o2_device`), both missing in a substantial proportion of encounters (see Figure 1b from profiling notebook).
 
 **Clinical interpretation:** Glucose is not routinely measured at every triage presentation; oxygen device is only recorded when supplemental oxygen is in active use. This missingness is therefore partly clinically explainable — but it poses a practical challenge because a model that depends on these features will be unable to generate predictions where the fields are blank.
 
@@ -74,7 +74,7 @@ The dataset contains precisely the variables captured on Mercer's existing paper
 
 ### Reason 2 — Large, Diverse Sample Enabling Robust Training and Bias Auditing
 
-The dataset contains [INSERT: n_rows] encounters — large enough to support training, validation, and test splits while retaining statistical power across demographic subgroups. This sample size allows the AIF360 bias audit to be run with meaningful subgroup sample sizes, producing equalized odds and demographic parity metrics that are statistically reliable rather than noise-dominated. Published AI triage models trained on comparable datasets have reported weighted F1 scores above 80% across ESI classes (Araouchi & Adda, 2024); the stacking ensemble architecture proposed for this project has a credible evidence base at this scale.
+The dataset contains 55,121 encounters — large enough to support training, validation, and test splits while retaining statistical power across demographic subgroups. This sample size allows the AIF360 bias audit to be run with meaningful subgroup sample sizes, producing equalized odds and demographic parity metrics that are statistically reliable rather than noise-dominated. Published AI triage models trained on comparable datasets have reported weighted F1 scores above 80% across ESI classes (Araouchi & Adda, 2024); the stacking ensemble architecture proposed for this project has a credible evidence base at this scale.
 
 ---
 
@@ -98,7 +98,7 @@ The following limitations must be disclosed to the Board before any deployment d
 
 - **Observational data from routine care:** Dataset not collected for research purposes. Yale-specific documentation conventions, coding practices, and triage workflows may not transfer directly to Mercer General ED.
 
-- **Chief complaint sparsity:** [INSERT: n_cc] binary chief complaint columns, most of which are zero for the majority of encounters. High-dimensional sparse features increase model complexity and the risk of overfitting on rare presentations.
+- **Chief complaint sparsity:** 200 binary chief complaint columns, most of which are zero for the majority of encounters. High-dimensional sparse features increase model complexity and the risk of overfitting on rare presentations.
 
 ---
 
