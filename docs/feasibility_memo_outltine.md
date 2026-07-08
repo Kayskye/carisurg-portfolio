@@ -12,8 +12,8 @@ The Yale Emergency Department triage dataset is suitable for developing a machin
 
 **What the dataset contains:**
 
-- **560,000** emergency department encounters collected across multiple sites within the Yale New Haven Health System, United States
-- **230** total columns organised into five clinical categories:
+- **55,121** emergency department encounters collected across multiple sites within the Yale New Haven Health System, United States
+- **226** total columns organised into five clinical categories:
   - *Triage acuity* — Emergency Severity Index (ESI 1–5), the same instrument used at Mercer General ED
   - *Vital signs* — heart rate, systolic/diastolic BP, respiratory rate, SpO2, temperature, blood glucose
   - *Demographics* — age, sex, race, ethnicity, language, marital status, employment, insurance
