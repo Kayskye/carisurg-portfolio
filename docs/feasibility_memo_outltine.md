@@ -32,14 +32,10 @@ The dataset captures the exact triage variables collected on the Mercer General 
 
 ## (c) Top 3 Quality Concerns
 
-### Concern 1 — Missing Data in Clinical Variables
-
-**Observation:** 0 columns contain missing values. The most affected clinical variables are blood glucose (`triage_glucose`) and oxygen delivery device (`triage_vital_o2_device`), both missing in a substantial proportion of encounters (see Figure 1b from profiling notebook).
-
-**Clinical interpretation:** Glucose is not routinely measured at every triage presentation; oxygen device is only recorded when supplemental oxygen is in active use. This missingness is therefore partly clinically explainable — but it poses a practical challenge because a model that depends on these features will be unable to generate predictions where the fields are blank.
-
-**Implication for this project:** A missing-data handling strategy (imputation, indicator flags, or model architecture that tolerates NaN) must be implemented before training. This is documented in the project risk register as Risk 1 (operational) and is consistent with findings by Teeple et al. (2023) who showed that missing ED data affects demographic groups unevenly, with Black patients more likely to have absent records.
-
+###Concern 1 — Absence of Missing Values Suggests Pre-Release Record Exclusion
+The profiling analysis found zero missing values across all 226 columns — an outcome that is implausible in a real clinical dataset, where incomplete documentation is endemic. Egerton-Warburton et al. (2025) report absent clinical documentation in up to 67% of low-acuity ED encounters; a dataset with no missingness at all has almost certainly been pre-processed to exclude incomplete records before public release.
+This matters because excluded records are not random. Patients who leave without being seen, arrive in extremis with abbreviated documentation, or present during surge periods when recording is rushed are disproportionately likely to have incomplete records — and disproportionately likely to be high-acuity or from marginalised demographic groups. Removing these records before training introduces a selection bias that is invisible in the cleaned dataset but would affect model performance on exactly the patients where accurate triage prediction is most consequential.
+**Design response:** The provenance of the public dataset release should be documented in the project methods section. Phase 2 validation on real Mercer patient data — which will include genuine missingness — is essential to test whether model performance degrades when encountering incomplete records.
 ---
 
 ### Concern 2 — Outliers in Vital Sign Variables
@@ -74,7 +70,7 @@ The dataset contains precisely the variables captured on Mercer's existing paper
 
 ### Reason 2 — Large, Diverse Sample Enabling Robust Training and Bias Auditing
 
-The dataset contains 55,121 encounters — large enough to support training, validation, and test splits while retaining statistical power across demographic subgroups. This sample size allows the AIF360 bias audit to be run with meaningful subgroup sample sizes, producing equalized odds and demographic parity metrics that are statistically reliable rather than noise-dominated. Published AI triage models trained on comparable datasets have reported weighted F1 scores above 80% across ESI classes (Araouchi & Adda, 2024); the stacking ensemble architecture proposed for this project has a credible evidence base at this scale.
+The dataset contains 55,121 encounters — large enough to support training, validation, and test splits while retaining statistical power across demographic subgroups. This sample size allows the AIF360 bias audit to be run with meaningful subgroup sample sizes, producing equalised odds and demographic parity metrics that are statistically reliable rather than noise-dominated. Published AI triage models trained on comparable datasets have reported weighted F1 scores above 80% across ESI classes (Araouchi & Adda, 2024); the stacking ensemble architecture proposed for this project has a credible evidence base at this scale.
 
 ---
 
