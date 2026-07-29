@@ -1,0 +1,68 @@
+# ================================================================
+# config.yaml
+# CariSurg MedPath — Bias-Audited ESI Triage Tool
+# Pipeline Configuration File
+#
+# All hyperparameters, file paths, and random seeds are defined
+# here. No hard-coded values appear in src/ or scripts/.
+# To reproduce results exactly, do not modify this file.
+# ================================================================
+
+# ── Data ─────────────────────────────────────────────────────────
+data:
+  filepath: data/yaleemmlc_admissionprediction_triage.csv
+  test_size: 0.20
+  random_seed: 42            # pinned — matches Weeks 6, 7, and 8 splits
+
+# ── Features ─────────────────────────────────────────────────────
+# Feature groups are read by src/features.prepare_features().
+# Add or remove column names here to change the feature set
+# without touching any Python source files.
+features:
+  target: esi
+
+  numeric:                   # median imputed → standard scaled
+    - triage_vital_o2        # SpO2 (%)
+    - triage_vital_hr        # Heart Rate (bpm)
+    - triage_vital_sbp       # Systolic BP (mmHg)
+    - triage_vital_rr        # Respiratory Rate (bpm)
+    - triage_vital_temp      # Temperature
+    - age                    # Patient age (years)
+    - triage_glucose         # Blood Glucose
+
+  binary:                    # mode imputed — no scaling
+    - gender
+    - arrivalmode
+
+  categorical:               # mode imputed → one-hot encoded
+    - race
+    - ethnicity
+    - insurance_status
+    - arrivalday
+    - arrivalmonth
+    - arrivalhour_bin
+    - previousdispo
+
+# ── Final Model ───────────────────────────────────────────────────
+# LightGBM selected on the basis of:
+#   - Highest Macro F1 across all models tested (0.2848)
+#   - Overall accuracy (0.4093) above the stratified random baseline (0.3754)
+#   - Clinically credible — does not perform below chance overall
+#   - Some ESI 1 detection capability retained (recall 0.0625)
+# See /docs/model-selection.md and /docs/cost_benefit_memo.md.
+model:
+  name: LightGBM
+  params:
+    n_estimators: 100
+    max_depth: 10
+    learning_rate: 0.1
+    num_leaves: 31
+    class_weight: balanced
+    random_state: 42         # must match data.random_seed for reproducibility
+    n_jobs: -1
+    verbose: -1
+
+# ── Output ────────────────────────────────────────────────────────
+output:
+  metrics_path: outputs/metrics.json
+  model_path:   outputs/model.pkl

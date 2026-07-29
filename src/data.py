@@ -1,84 +1,66 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-RANDOM_SEED = 42
+# Columns that may be imported as object dtype due to mixed entries
+# (e.g. triage_glucose with 'HIGH' / 'LOW' string values).
+_NUMERIC_COLS_TO_FIX = [
+    "age", "esi",
+    "triage_vital_hr", "triage_vital_sbp", "triage_vital_dbp",
+    "triage_vital_rr", "triage_vital_o2",
+    "triage_vital_temp", "triage_glucose",
+]
 
 
-def load_dataset(filepath):
+def load_dataset(filepath: str) -> pd.DataFrame:
     """
-    Load the Yale Emergency Department dataset.
+    Load the Yale Emergency Department triage CSV and correct
+    dtype anomalies identified during Week 5 profiling.
+
+    Parameters
+    ----------
+    filepath : str
+        Path to yaleemmlc_admissionprediction_triage.csv.
+        Taken from config['data']['filepath'] — not hard-coded.
+
+    Returns
+    -------
+    pd.DataFrame
+        Raw data with numeric columns correctly typed.
     """
     df = pd.read_csv(filepath)
 
-    # Convert important numeric columns
-    for col in [
-        "age",
-        "esi",
-        "triage_vital_hr",
-        "triage_vital_sbp",
-        "triage_vital_dbp",
-        "triage_vital_rr",
-        "triage_vital_o2",
-        "triage_vital_temp",
-        "triage_glucose"
-    ]:
+    for col in _NUMERIC_COLS_TO_FIX:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
     return df
 
 
-def prepare_features(df):
+def split_data(
+    X: pd.DataFrame,
+    y: pd.Series,
+    test_size: float = 0.20,
+    random_seed: int = 42,
+) -> tuple:
+    """
+    Stratified 80/20 train/test split.
 
-    NUMERIC_FEATURES = [
-        c for c in [
-            "triage_vital_o2",
-            "triage_vital_hr",
-            "triage_vital_sbp",
-            "triage_vital_rr",
-            "triage_vital_temp",
-            "age",
-            "triage_glucose"
-        ] if c in df.columns
-    ]
+    Parameters
+    ----------
+    X           : pd.DataFrame — feature matrix
+    y           : pd.Series   — target labels
+    test_size   : float, default 0.20 — from config['data']['test_size']
+    random_seed : int, default 42   — from config['data']['random_seed']
+        Using the same seed and data reproduces the identical split
+        used across Weeks 6, 7, and 8.
 
-    BINARY_FEATURES = [
-        c for c in [
-            "gender",
-            "arrivalmode"
-        ] if c in df.columns
-    ]
-
-    CATEGORICAL_FEATURES = [
-        c for c in [
-            "race",
-            "ethnicity",
-            "insurance_status",
-            "arrivalday",
-            "arrivalmonth",
-            "arrivalhour_bin",
-            "previousdispo"
-        ] if c in df.columns
-    ]
-
-    X = df.drop(columns=["esi"])
-    y = df["esi"]
-
-    return (
-        X,
-        y,
-        NUMERIC_FEATURES,
-        BINARY_FEATURES,
-        CATEGORICAL_FEATURES
-    )
-
-
-def split_data(X, y):
-
+    Returns
+    -------
+    tuple of (X_train, X_test, y_train, y_test)
+    """
     return train_test_split(
-        X,
-        y,
-        test_size=0.20,
-        random_state=RANDOM_SEED,
-        stratify=y
+        X, y,
+        test_size=test_size,
+        random_state=random_seed,
+        stratify=y,
     )
