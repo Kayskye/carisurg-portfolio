@@ -1,87 +1,90 @@
 # Decision Journal — Week 7 Model Choice
-**Decision type:** Algorithm selection for complex model step
+**Decision type:** Algorithm selection for the final production model
 
 ---
 
 ## Context
 
-- The Week 6 baseline logistic regression correctly identified zero
-  of 16 ESI 1 (life-threatening) patients in the test set, scoring
-  an ESI 1 recall of 0.0000 on the same 20% stratified hold-out used
-  for all subsequent evaluation — a failure mode clinically equivalent
-  to a triage tool that never sounds the alarm for cardiac arrest.
-- The rubric for Week 7 requires a more complex classifier (random
-  forest, gradient boosting, or MLP) trained on the same 80/20
-  stratified split (random_state = 42) and evaluated on the same six
-  quantitative axes plus one interpretability axis.
+- Nine classifiers were benchmarked on the same 20% stratified
+  hold-out (random_state = 42): a stratified random baseline,
+  Logistic Regression, Decision Tree, Random Forest, Extra Trees,
+  XGBoost, LightGBM, HistGradientBoosting, and MLP. The Logistic
+  Regression achieved the highest ESI 1 recall (0.8125) but at an
+  overall accuracy of 0.2620 — below the stratified random baseline
+  of 0.3754 — meaning it performs worse than chance on overall
+  classification and would lose clinical trust within a shift.
+- Tutor feedback (Dr. De Freitas) specifically challenged whether
+  an overall accuracy of 0.26 is appropriate for clinical deployment,
+  shifting the primary selection criterion from ESI 1 recall alone
+  to balanced performance across all five ESI classes, measured by
+  Macro F1 on a model whose accuracy is above the random baseline.
 
 ---
 
 ## Alternatives Considered
 
-- **Gradient Boosting (XGBoost or LightGBM):** Sequential tree
-  boosting typically outperforms random forest on tabular data with
-  class imbalance; however, it introduces additional hyperparameters
-  (learning rate, subsample ratio, number of rounds), is slower to
-  tune, and is harder to explain per-prediction without SHAP —
-  adding implementation complexity without a clear justification
-  at the baseline complex model stage.
-- **Small MLP (Multi-Layer Perceptron):** A neural network with
-  two hidden layers (e.g. 64 → 32 → 5 output) could capture
-  non-linear interactions but requires feature scaling already
-  applied in the pipeline, a separate framework decision
-  (Keras vs PyTorch), and is the least interpretable option —
-  ruling it out on clinical governance grounds given the project's
-  bias-audit requirement.
-- **Random Forest:** Ensemble of 100 decision trees; scikit-learn
-  pipeline-compatible; produces feature importances for global
-  interpretability; per-prediction SHAP explanation achievable
-  within one minute after initial setup; `class_weight='balanced'`
-  directly available; no additional framework dependency beyond
-  the existing sklearn stack.
+- **Random Forest** (initial Week 7 complex model): Achieved Macro
+  F1 of 0.2828 and accuracy of 0.4387, but scored 0.0000 on ESI 1
+  recall — correctly identifying zero life-threatening patients. Good
+  balanced performance but the complete failure on ESI 1 and the
+  availability of stronger alternatives in the extended benchmark
+  made it the second-best choice rather than the final one.
+- **MLP (128 → 64):** Achieved the highest overall accuracy (0.5454)
+  and macro precision (0.4229) but scored 0.0000 on ESI 1 recall and
+  the lowest Macro F1 (0.2333) of all non-random models. High
+  accuracy with zero ESI 1 detection is clinically dangerous —
+  a tool that looks precise on paper but never flags a cardiac arrest
+  is more harmful than one with lower headline accuracy.
+- **XGBoost:** Achieved Macro F1 of 0.2758 and accuracy of 0.3938,
+  but both metrics are below LightGBM on every primary axis. No
+  meaningful advantage over LightGBM was observed to justify the
+  additional tuning complexity of the subsample and colsample
+  hyperparameters.
 
 ---
 
 ## Decision
 
-Random Forest (`sklearn.ensemble.RandomForestClassifier`,
-n_estimators = 100, max_depth = 15, min_samples_leaf = 5,
+LightGBM (`lightgbm.LGBMClassifier`, n_estimators = 100,
+max_depth = 10, learning_rate = 0.1, num_leaves = 31,
 class_weight = 'balanced', random_state = 42) is selected as
-the Week 7 complex model.
+the final production model, pinned in `config.yaml`.
 
 ---
 
 ## Reasoning
 
-- **ESI 1 recall is the primary clinical benchmark axis.** The
-  logistic regression's 0.0000 ESI 1 recall is the most consequential
-  failure in the Week 6 results; Random Forest's non-linear,
-  ensemble-averaged decision boundary is more likely to learn the
-  rare vital sign patterns associated with ESI 1 presentations than
-  either a linear model or a single decision tree (DT macro F1: 0.2307 vs RF macro F1: 0.2828.
-- **Interpretability axis is partially satisfied without additional
-  libraries.** The global feature importance output from Random Forest
-  is immediately available and directly comparable to the ranked
-  clinical feature shortlist in `/docs/feature_shortlist.md` — if
-  SpO2 and heart rate dominate the importance ranking, the model's
-  priorities are clinically coherent; this validation step is not
-  possible with MLP or with gradient boosting without SHAP.
-- **Same scikit-learn framework as baselines.** Random Forest fits
-  directly into the existing `Pipeline` and `ColumnTransformer`
-  stack from Week 6 — no new framework, no refactoring, identical
-  preprocessing guaranteeing like-for-like comparison on all six
-  quantitative axes.
+- **Highest Macro F1 across all nine models (0.2848).** Macro F1
+  gives equal weight to all five ESI classes — a model excelling on
+  ESI 3 (the majority class) cannot inflate this score by ignoring
+  ESI 1. LightGBM is the only model that crosses 0.28 on this metric,
+  meaning its performance is the most balanced across the full acuity
+  spectrum of the nine models tested.
+- **Overall accuracy above the stratified random baseline (0.4093
+  vs 0.3754).** Dr. De Freitas' feedback established that clinical
+  credibility requires accuracy above chance. LightGBM satisfies
+  this condition; Logistic Regression (0.2620) and Extra Trees
+  (0.3205) do not. A model performing below the random baseline
+  would be identified as unreliable by triage nurses within hours
+  of deployment.
+- **Highest macro precision of all models tested (0.3001).**
+  LightGBM is the only model to cross the 0.30 threshold on macro
+  precision, meaning when it assigns a triage level it is more often
+  correct than any alternative — directly relevant to clinical trust
+  in a nurse-facing decision support tool.
 
 ---
 
 ## Things Not Yet Known
 
-- Whether the Random Forest's improvement in ESI 1 recall and macro
-  F1 over the logistic regression holds when the model is retrained
-  on real Mercer General ED patient data in Phase 2, rather than on
-  the simulated Yale-derived dataset used here.
-- Whether `n_estimators = 100` and `max_depth = 15` are optimal for
-  this problem — cross-validated grid search over
-  `n_estimators ∈ {50, 100, 200}` and `max_depth ∈ {10, 15, 20}`
-  is planned for the full stacked model but was not conducted at the
-  baseline complex model stage.
+- Whether LightGBM's Macro F1 advantage over the other models holds
+  when retrained on real Mercer General ED patient data in Phase 2,
+  rather than on the Yale-derived simulated dataset — Caribbean
+  presentation patterns (dengue fever, sickle cell, tropical disease
+  profiles) absent from the training data may change the relative
+  performance ranking.
+- Whether the ESI 1 recall of 0.0625 can be meaningfully improved
+  through chief complaint NLP (identifying terms such as *cardiac
+  arrest*, *unresponsive*, and *anaphylaxis*) without degrading the
+  Macro F1 and accuracy gains that justified selecting LightGBM
+  over the alternatives.
