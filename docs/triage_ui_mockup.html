@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mercer General ED — Triage Tool Mock-Up (Draft)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f0f4f8;
+    color: #1a2332;
+    font-size: 14px;
+  }
+
+  /* ── Draft watermark ── */
+  .draft-banner {
+    background: #fef3c7;
+    border-bottom: 2px solid #f59e0b;
+    text-align: center;
+    padding: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #92400e;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── App shell ── */
+  .shell {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    grid-template-rows: 52px 1fr;
+    height: calc(100vh - 30px);
+    min-height: 700px;
+  }
+
+  /* ── Top bar ── */
+  .topbar {
+    grid-column: 1 / -1;
+    background: #1e3a5f;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 16px;
+  }
+  .topbar-logo {
+    color: #fff;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.02em;
+  }
+  .topbar-logo span { color: #60a5fa; }
+  .topbar-shift {
+    margin-left: auto;
+    color: #94a3b8;
+    font-size: 12px;
+  }
+  .topbar-nurse {
+    color: #e2e8f0;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  /* ── Queue sidebar ── */
+  .sidebar {
+    background: #1e293b;
+    border-right: 1px solid #334155;
+    overflow-y: auto;
+    padding: 12px 0;
+  }
+  .sidebar-heading {
+    color: #94a3b8;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0 14px 8px;
+  }
+  .queue-item {
+    padding: 10px 14px;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: background 0.15s;
+  }
+  .queue-item:hover { background: #263347; }
+  .queue-item.active { background: #1e3a5f; border-left-color: #60a5fa; }
+  .queue-item.alert-esi1 { border-left-color: #ef4444; }
+  .queue-item.alert-detn { border-left-color: #f59e0b; }
+
+  .qi-row { display: flex; align-items: center; gap: 8px; }
+  .qi-name { color: #e2e8f0; font-size: 13px; font-weight: 500; }
+  .qi-time { margin-left: auto; color: #64748b; font-size: 11px; }
+  .qi-sub { color: #64748b; font-size: 11px; margin-top: 3px; }
+
+  .esi-dot {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  .esi-dot.e1 { background: #dc2626; }
+  .esi-dot.e2 { background: #ea580c; }
+  .esi-dot.e3 { background: #ca8a04; }
+  .esi-dot.e4 { background: #16a34a; }
+  .esi-dot.e5 { background: #475569; }
+
+  .alert-tag {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 6px; border-radius: 3px;
+    font-size: 10px; font-weight: 600;
+    margin-top: 4px;
+  }
+  .alert-tag.esi1 { background: #fef2f2; color: #b91c1c; }
+  .alert-tag.wait { background: #fffbeb; color: #92400e; }
+
+  /* ── Main content ── */
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 16px;
+    padding: 16px;
+    overflow-y: auto;
+    align-content: start;
+  }
+
+  .patient-header {
+    grid-column: 1 / -1;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .ph-name { font-size: 16px; font-weight: 700; }
+  .ph-meta { color: #64748b; font-size: 12px; margin-top: 2px; }
+  .ph-arrival {
+    margin-left: auto;
+    background: #eff6ff;
+    color: #1d4ed8;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  /* ── Form panel ── */
+  .panel {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .panel-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #64748b;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .vitals-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .vital-field label {
+    display: block;
+    font-size: 11px;
+    color: #64748b;
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+  .vital-field input {
+    width: 100%;
+    border: 1px solid #e2e8f0;
+    border-radius: 5px;
+    padding: 7px 10px;
+    font-size: 13px;
+    color: #1a2332;
+    background: #f8fafc;
+  }
+  .vital-field input.entered { border-color: #3b82f6; background: #eff6ff; }
+  .vital-field input.flagged { border-color: #f59e0b; background: #fffbeb; }
+  .vital-field .unit {
+    font-size: 10px;
+    color: #94a3b8;
+    margin-top: 2px;
+  }
+
+  /* SpO2 bias flag */
+  .spо2-flag {
+    grid-column: 1 / -1;
+    background: #fffbeb;
+    border: 1px solid #f59e0b;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 11px;
+    color: #92400e;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin-top: 4px;
+  }
+  .flag-icon { font-size: 14px; flex-shrink: 0; }
+
+  /* Chief complaint */
+  .cc-select {
+    width: 100%;
+    border: 1px solid #e2e8f0;
+    border-radius: 5px;
+    padding: 7px 10px;
+    font-size: 13px;
+    background: #f8fafc;
+    margin-bottom: 10px;
+  }
+  .cc-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .cc-tag {
+    padding: 3px 8px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  /* Nurse ESI entry */
+  .nurse-esi-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid #f1f5f9;
+  }
+  .esi-btn {
+    flex: 1;
+    padding: 10px 4px;
+    border: 2px solid transparent;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .esi-btn.e1 { background: #fef2f2; color: #dc2626; border-color: #fca5a5; }
+  .esi-btn.e2 { background: #fff7ed; color: #ea580c; border-color: #fdba74; }
+  .esi-btn.e3 { background: #fefce8; color: #ca8a04; border-color: #fde047; }
+  .esi-btn.e4 { background: #f0fdf4; color: #16a34a; border-color: #86efac; }
+  .esi-btn.e5 { background: #f8fafc; color: #475569; border-color: #cbd5e1; }
+  .esi-btn.selected { transform: scale(1.05); box-shadow: 0 0 0 2px currentColor; }
+
+  /* ── AI suggestion panel ── */
+  .ai-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .suggestion-box {
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    position: relative;
+  }
+  .suggestion-box.esi2 { border-color: #fb923c; }
+  .suggestion-box.esi1-alert { border-color: #dc2626; background: #fef2f2; animation: pulse-red 1.5s infinite; }
+  @keyframes pulse-red { 0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,0.2)} 50%{box-shadow:0 0 0 6px rgba(220,38,38,0.05)} }
+
+  .ai-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #64748b;
+    margin-bottom: 10px;
+  }
+  .ai-esi-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 auto 10px;
+  }
+  .ai-esi-badge.e2 { background: #ea580c; }
+  .ai-esi-badge.e1 { background: #dc2626; }
+
+  .ai-confidence {
+    font-size: 11px;
+    color: #64748b;
+    margin-bottom: 14px;
+  }
+  .conf-bar {
+    height: 4px;
+    background: #e2e8f0;
+    border-radius: 2px;
+    margin: 4px 0 8px;
+    overflow: hidden;
+  }
+  .conf-fill { height: 100%; border-radius: 2px; }
+  .conf-fill.high { background: #16a34a; width: 84%; }
+  .conf-fill.low  { background: #f59e0b; width: 42%; }
+
+  .ai-action-row { display: flex; gap: 8px; }
+  .btn-confirm {
+    flex: 1;
+    background: #1e3a5f;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-override {
+    flex: 1;
+    background: #fff;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* Pending state */
+  .ai-pending {
+    background: #f8fafc;
+    border: 2px dashed #cbd5e1;
+    border-radius: 8px;
+    padding: 24px 16px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 12px;
+  }
+  .ai-pending .lock-icon { font-size: 24px; margin-bottom: 8px; }
+
+  /* Deterioration alert card */
+  .detn-alert {
+    background: #fffbeb;
+    border: 1.5px solid #f59e0b;
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .detn-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #92400e;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .detn-body { font-size: 11px; color: #78350f; line-height: 1.5; }
+  .detn-action-row { display: flex; gap: 6px; margin-top: 10px; }
+  .btn-check {
+    flex: 1;
+    background: #f59e0b;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 7px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-dismiss {
+    flex: 1;
+    background: #fff;
+    color: #92400e;
+    border: 1px solid #fcd34d;
+    border-radius: 5px;
+    padding: 7px;
+    font-size: 11px;
+    cursor: pointer;
+  }
+
+  /* Audit note */
+  .audit-note {
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 11px;
+    color: #14532d;
+  }
+
+  /* State tabs */
+  .state-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #1e3a5f;
+    border-bottom: 1px solid #334155;
+    overflow-x: auto;
+  }
+  .state-tab {
+    padding: 5px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #94a3b8;
+    cursor: pointer;
+    white-space: nowrap;
+    border: 1px solid transparent;
+  }
+  .state-tab.active { background: #fff; color: #1e3a5f; }
+  .state-tab:hover:not(.active) { color: #e2e8f0; border-color: #475569; }
+
+  .screen { display: none; }
+  .screen.visible { display: contents; }
+
+  .label-row {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    color: #94a3b8;
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+
+<div class="draft-banner">
+  DRAFT MOCK-UP — Design Ideation Week | Mercer General ED — Bias-Audited ESI Triage Tool | Kaylah Leigertwood-Ollivierre
+</div>
+
+<div class="state-tabs" id="stateTabs">
+  <div class="state-tab active" onclick="showState(0,this)">State 1: Entering vitals</div>
+  <div class="state-tab" onclick="showState(1,this)">State 2: AI suggestion (normal)</div>
+  <div class="state-tab" onclick="showState(2,this)">State 3: SpO2 bias flag</div>
+  <div class="state-tab" onclick="showState(3,this)">State 4: ESI 1 alert</div>
+  <div class="state-tab" onclick="showState(4,this)">State 5: Queue + deterioration</div>
+</div>
+
+<div class="shell" id="appShell">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="topbar-logo">Mercer General <span>ED Triage</span></div>
+    <div class="topbar-shift">Day shift · 08:00–20:00 · 14 patients waiting</div>
+    <div class="topbar-nurse">Nurse Clarke</div>
+  </div>
+
+  <!-- Sidebar queue -->
+  <div class="sidebar">
+    <div class="sidebar-heading">Waiting queue</div>
+
+    <div class="queue-item active" id="qi-active">
+      <div class="qi-row">
+        <div class="esi-dot e2">2</div>
+        <div class="qi-name">M. Joseph, 58</div>
+        <div class="qi-time">Now</div>
+      </div>
+      <div class="qi-sub">Chest pain · Ambulance</div>
+    </div>
+
+    <div class="queue-item alert-detn" id="qi-detn">
+      <div class="qi-row">
+        <div class="esi-dot e4">4</div>
+        <div class="qi-name">T. Brathwaite, 34</div>
+        <div class="qi-time">41 min</div>
+      </div>
+      <div class="qi-sub">UTI · Walk-in</div>
+      <div class="alert-tag wait">⏱ Re-check overdue</div>
+    </div>
+
+    <div class="queue-item" id="qi-esi1">
+      <div class="qi-row">
+        <div class="esi-dot e1">1</div>
+        <div class="qi-name">R. Alleyne, 45</div>
+        <div class="qi-time">2 min</div>
+      </div>
+      <div class="qi-sub">Unresponsive · Ambulance</div>
+      <div class="alert-tag esi1">⚠ ESI 1 — Resus</div>
+    </div>
+
+    <div class="queue-item">
+      <div class="qi-row">
+        <div class="esi-dot e3">3</div>
+        <div class="qi-name">S. Holder, 72</div>
+        <div class="qi-time">8 min</div>
+      </div>
+      <div class="qi-sub">Abdominal pain · Walk-in</div>
+    </div>
+
+    <div class="queue-item">
+      <div class="qi-row">
+        <div class="esi-dot e5">5</div>
+        <div class="qi-name">C. Griffith, 29</div>
+        <div class="qi-time">12 min</div>
+      </div>
+      <div class="qi-sub">Prescription refill</div>
+    </div>
+  </div>
+
+  <!-- ══ STATE 0: Entering vitals (before AI) ══ -->
+  <div class="main screen visible" id="s0">
+
+    <div class="patient-header">
+      <div>
+        <div class="ph-name">M. Joseph &nbsp;·&nbsp; Male &nbsp;·&nbsp; Age 58</div>
+        <div class="ph-meta">Triaged: 08:14 &nbsp;·&nbsp; Registration: 08:11 &nbsp;·&nbsp; Insured</div>
+      </div>
+      <div class="ph-arrival">🚑 Ambulance arrival</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Triage vital signs</div>
+      <div class="vitals-grid">
+        <div class="vital-field">
+          <label>Heart Rate</label>
+          <input type="text" value="108" class="entered">
+          <div class="unit">bpm</div>
+        </div>
+        <div class="vital-field">
+          <label>Systolic BP</label>
+          <input type="text" value="142" class="entered">
+          <div class="unit">mmHg</div>
+        </div>
+        <div class="vital-field">
+          <label>Respiratory Rate</label>
+          <input type="text" value="22" class="entered">
+          <div class="unit">bpm</div>
+        </div>
+        <div class="vital-field">
+          <label>SpO2</label>
+          <input type="text" placeholder="Enter..." >
+          <div class="unit">%</div>
+        </div>
+        <div class="vital-field">
+          <label>Temperature</label>
+          <input type="text" value="37.4" class="entered">
+          <div class="unit">°C</div>
+        </div>
+        <div class="vital-field">
+          <label>Blood Glucose</label>
+          <input type="text" placeholder="Optional">
+          <div class="unit">mmol/L</div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid #f1f5f9;">
+        <div class="panel-title" style="margin-bottom:8px">Chief complaint</div>
+        <select class="cc-select"><option>Chest pain</option><option>Shortness of breath</option><option>Abdominal pain</option></select>
+        <div class="cc-tags">
+          <span class="cc-tag">Chest pain</span>
+          <span class="cc-tag">Shortness of breath</span>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;padding-top:10px;border-top:1px solid #f1f5f9;font-size:11px;color:#64748b;">
+        <strong>Step 1:</strong> Enter your ESI assessment below before the AI suggestion is shown.
+      </div>
+      <div class="nurse-esi-row">
+        <button class="esi-btn e1">ESI 1</button>
+        <button class="esi-btn e2">ESI 2</button>
+        <button class="esi-btn e3">ESI 3</button>
+        <button class="esi-btn e4">ESI 4</button>
+        <button class="esi-btn e5">ESI 5</button>
+      </div>
+    </div>
+
+    <div class="ai-panel">
+      <div class="ai-pending">
+        <div class="lock-icon">🔒</div>
+        <strong>AI suggestion locked</strong><br>
+        Enter your ESI assessment first, then the model suggestion will appear here.
+      </div>
+      <div class="audit-note">
+        ✓ All inputs are logged with a timestamp for audit. Your decision is always recorded independently of the model.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ STATE 1: Normal AI suggestion ══ -->
+  <div class="main screen" id="s1">
+
+    <div class="patient-header">
+      <div>
+        <div class="ph-name">M. Joseph &nbsp;·&nbsp; Male &nbsp;·&nbsp; Age 58</div>
+        <div class="ph-meta">Triaged: 08:14 &nbsp;·&nbsp; Nurse ESI recorded: ESI 2</div>
+      </div>
+      <div class="ph-arrival">🚑 Ambulance arrival</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Triage vital signs — recorded</div>
+      <div class="vitals-grid">
+        <div class="vital-field"><label>Heart Rate</label><input value="108 bpm" class="entered" readonly></div>
+        <div class="vital-field"><label>Systolic BP</label><input value="142 mmHg" class="entered" readonly></div>
+        <div class="vital-field"><label>Respiratory Rate</label><input value="22 bpm" class="entered" readonly></div>
+        <div class="vital-field"><label>SpO2</label><input value="97 %" class="entered" readonly></div>
+        <div class="vital-field"><label>Temperature</label><input value="37.4 °C" class="entered" readonly></div>
+        <div class="vital-field"><label>Blood Glucose</label><input value="Not recorded" readonly></div>
+      </div>
+      <div style="margin-top:12px;padding:10px 12px;background:#eff6ff;border-radius:6px;font-size:12px;color:#1d4ed8;font-weight:500;">
+        Your assessment: <strong>ESI 2 — Emergent</strong>
+      </div>
+    </div>
+
+    <div class="ai-panel">
+      <div class="suggestion-box esi2">
+        <div class="ai-label">AI triage suggestion</div>
+        <div class="ai-esi-badge e2">2</div>
+        <div style="font-size:14px;font-weight:700;color:#ea580c;margin-bottom:4px;">ESI 2 — Emergent</div>
+        <div style="font-size:11px;color:#64748b;margin-bottom:10px;">agrees with your assessment</div>
+        <div class="ai-confidence">
+          Confidence: High (84%)
+          <div class="conf-bar"><div class="conf-fill high"></div></div>
+        </div>
+        <div class="ai-action-row">
+          <button class="btn-confirm">✓ Confirm ESI 2</button>
+          <button class="btn-override">Override</button>
+        </div>
+      </div>
+      <div class="audit-note">
+        ✓ Nurse ESI: 2 &nbsp;·&nbsp; Model ESI: 2 &nbsp;·&nbsp; Match &nbsp;·&nbsp; 08:17
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ STATE 2: SpO2 bias flag ══ -->
+  <div class="main screen" id="s2">
+
+    <div class="patient-header">
+      <div>
+        <div class="ph-name">M. Joseph &nbsp;·&nbsp; Male &nbsp;·&nbsp; Age 58</div>
+        <div class="ph-meta">SpO2 borderline reading detected</div>
+      </div>
+      <div class="ph-arrival">🚑 Ambulance arrival</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Triage vital signs</div>
+      <div class="vitals-grid">
+        <div class="vital-field"><label>Heart Rate</label><input value="108 bpm" class="entered" readonly></div>
+        <div class="vital-field"><label>Systolic BP</label><input value="142 mmHg" class="entered" readonly></div>
+        <div class="vital-field"><label>Respiratory Rate</label><input value="22 bpm" class="entered" readonly></div>
+        <div class="vital-field">
+          <label>SpO2 ⚠</label>
+          <input value="95 %" class="flagged" readonly>
+        </div>
+        <div class="vital-field"><label>Temperature</label><input value="37.4 °C" class="entered" readonly></div>
+        <div class="vital-field"><label>Blood Glucose</label><input value="Not recorded" readonly></div>
+
+        <div class="spо2-flag">
+          <span class="flag-icon">⚠️</span>
+          <span><strong>Borderline SpO2 (95%).</strong> Pulse oximetry may underestimate hypoxaemia in patients with darker skin pigmentation. Consider repeat reading or clinical respiratory assessment before finalising ESI level.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ai-panel">
+      <div class="suggestion-box esi2" style="border-color:#f59e0b;background:#fffbeb;">
+        <div class="ai-label">AI triage suggestion</div>
+        <div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:5px;padding:8px;margin-bottom:12px;font-size:11px;color:#92400e;text-align:left;">
+          ⚠️ <strong>SpO2 bias flag active.</strong> This suggestion may underestimate hypoxaemia. Apply clinical reassessment.
+        </div>
+        <div class="ai-esi-badge e2">2</div>
+        <div style="font-size:14px;font-weight:700;color:#ea580c;margin-bottom:4px;">ESI 2 — Emergent</div>
+        <div class="ai-confidence">
+          Confidence: Medium (67%)
+          <div class="conf-bar"><div class="conf-fill low"></div></div>
+        </div>
+        <div class="ai-action-row">
+          <button class="btn-confirm">✓ Confirm ESI 2</button>
+          <button class="btn-override" style="background:#fff7ed;border-color:#fb923c;color:#92400e;">Override / Escalate</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ STATE 3: ESI 1 alert ══ -->
+  <div class="main screen" id="s3">
+
+    <div class="patient-header" style="border-color:#fca5a5;background:#fef2f2;">
+      <div>
+        <div class="ph-name" style="color:#dc2626;">R. Alleyne &nbsp;·&nbsp; Female &nbsp;·&nbsp; Age 45</div>
+        <div class="ph-meta" style="color:#b91c1c;">⚠ Immediate intervention required</div>
+      </div>
+      <div class="ph-arrival" style="background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;">🚑 Ambulance · Unresponsive</div>
+    </div>
+
+    <div class="panel" style="border-color:#fca5a5;">
+      <div class="panel-title">Triage vital signs</div>
+      <div class="vitals-grid">
+        <div class="vital-field"><label>Heart Rate</label><input value="38 bpm" style="border-color:#dc2626;background:#fef2f2;font-weight:700;color:#dc2626;" readonly></div>
+        <div class="vital-field"><label>Systolic BP</label><input value="70 mmHg" style="border-color:#dc2626;background:#fef2f2;font-weight:700;color:#dc2626;" readonly></div>
+        <div class="vital-field"><label>Respiratory Rate</label><input value="6 bpm" style="border-color:#dc2626;background:#fef2f2;font-weight:700;color:#dc2626;" readonly></div>
+        <div class="vital-field"><label>SpO2</label><input value="78 %" style="border-color:#dc2626;background:#fef2f2;font-weight:700;color:#dc2626;" readonly></div>
+        <div class="vital-field"><label>Temperature</label><input value="35.1 °C" class="entered" readonly></div>
+        <div class="vital-field"><label>Blood Glucose</label><input value="2.1 mmol/L" style="border-color:#dc2626;background:#fef2f2;" readonly></div>
+      </div>
+    </div>
+
+    <div class="ai-panel">
+      <div class="suggestion-box esi1-alert">
+        <div class="ai-label" style="color:#dc2626;">AI triage suggestion</div>
+        <div class="ai-esi-badge e1">1</div>
+        <div style="font-size:15px;font-weight:700;color:#dc2626;margin-bottom:4px;">ESI 1 — IMMEDIATE</div>
+        <div style="font-size:11px;color:#b91c1c;margin-bottom:12px;">Life-threatening — direct to Resuscitation Bay</div>
+        <div class="ai-action-row">
+          <button class="btn-confirm" style="background:#dc2626;">✓ Confirm ESI 1 — Resus</button>
+        </div>
+        <div style="font-size:10px;color:#b91c1c;margin-top:10px;">Override available — tap and hold for 2 seconds</div>
+      </div>
+      <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;padding:10px;font-size:11px;color:#b91c1c;">
+        Charge nurse has been notified. Resus Bay 1 status: Available.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ STATE 4: Queue + deterioration alert ══ -->
+  <div class="main screen" id="s4">
+
+    <div class="patient-header">
+      <div>
+        <div class="ph-name">Current: M. Joseph &nbsp;·&nbsp; Triage complete (ESI 2)</div>
+        <div class="ph-meta">Next: S. Holder, 72 — Abdominal pain</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">⏱ Deterioration alert — waiting room</div>
+      <div class="detn-alert">
+        <div class="detn-title">⚠️ Re-check recommended</div>
+        <div class="detn-body">
+          <strong>T. Brathwaite, 34</strong> (ESI 4 — UTI) has been waiting
+          <strong>41 minutes</strong> since initial triage. This exceeds the
+          60-minute safe window for ESI 4 patients.<br><br>
+          Original vital signs: HR 88, BP 118/74, SpO2 99%, Temp 37.8°C<br>
+          Chief complaint: Dysuria, frequency
+        </div>
+        <div class="detn-action-row">
+          <button class="btn-check">✓ Visual re-check done</button>
+          <button class="btn-dismiss">Escalate to ESI 3</button>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;">
+        <div class="panel-title">Shift queue status</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:8px;">
+          <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:6px;padding:10px;text-align:center;">
+            <div style="font-size:20px;font-weight:700;color:#16a34a;">12</div>
+            <div style="font-size:10px;color:#15803d;">Triaged today</div>
+          </div>
+          <div style="background:#fffbeb;border:1px solid #fde047;border-radius:6px;padding:10px;text-align:center;">
+            <div style="font-size:20px;font-weight:700;color:#ca8a04;">2</div>
+            <div style="font-size:10px;color:#a16207;">Re-checks pending</div>
+          </div>
+          <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:10px;text-align:center;">
+            <div style="font-size:20px;font-weight:700;color:#1d4ed8;">1</div>
+            <div style="font-size:10px;color:#1e40af;">Overrides today</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ai-panel">
+      <div class="audit-note" style="background:#f0fdf4;border-color:#86efac;">
+        ✓ All 12 triage decisions logged with timestamps<br>
+        ✓ 1 AI override recorded (ESI 3 → ESI 2, 09:14)<br>
+        ✓ Shift handover summary will auto-generate at 20:00
+      </div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:14px;">
+        <div class="panel-title" style="margin-bottom:10px;">Today's model performance</div>
+        <div style="font-size:11px;color:#475569;line-height:2;">
+          Agreement rate: <strong>83%</strong><br>
+          Override rate: <strong>17%</strong> (within 15–40% target ✓)<br>
+          SpO2 flags triggered: <strong>3</strong><br>
+          ESI 1 alerts: <strong>1</strong>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+function showState(idx, tab) {
+  document.querySelectorAll('.screen').forEach((s,i) => {
+    s.classList.toggle('visible', i === idx);
+  });
+  document.querySelectorAll('.state-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+}
+</script>
+</body>
+</html>
